@@ -5,13 +5,13 @@
 
 ## Core Workflows
 
-### 1) AI Swarm Controller (`/home/runner/work/agent-swarm-hub/agent-swarm-hub/.github/workflows/swarm-controller.yml`)
+### 1) AI Swarm Controller (`.github/workflows/swarm-controller.yml`)
 - Runs on `push`, schedule (`*/5 * * * *`), and manual dispatch
 - Maintains `.swarm/state/swarm.json`
 - Logs deployments to `.swarm/logs/deploy.log`
 - Commits and pushes only when there are actual state/log changes
 
-### 2) Ecosystem Sync (`/home/runner/work/agent-swarm-hub/agent-swarm-hub/.github/workflows/ecosystem-sync.yml`)
+### 2) Ecosystem Sync (`.github/workflows/ecosystem-sync.yml`)
 - Triggers after successful Swarm Controller runs
 - Emits a repository dispatch event for satellite synchronization
 - Currently targets `Niorlusx/omni-decoder-elite`
