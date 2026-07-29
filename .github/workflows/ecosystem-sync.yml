@@ -14,6 +14,9 @@ jobs:
   sync:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    env:
+      TARGET_SYNC_OWNER: ${{ vars.ECOSYSTEM_SYNC_OWNER || 'Niorlusx' }}
+      TARGET_SYNC_REPO: ${{ vars.ECOSYSTEM_SYNC_REPO || 'omni-decoder-elite' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,6 +29,12 @@ jobs:
           echo "Ecosystem sync triggered by: ${{ github.event_name }}"
           echo "Swarm run conclusion: ${{ github.event.workflow_run.conclusion || 'manual' }}"
           echo "Run ID: ${{ github.run_id }}"
+          echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
+
+      - name: Warn if cross-repo token is missing
+        if: ${{ secrets.ECOSYSTEM_SYNC_TOKEN == '' }}
+        run: |
+          echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
 
       - name: Dispatch sync event to satellite repo
         uses: actions/github-script@v7
@@ -34,8 +43,8 @@ jobs:
           github-token: ${{ secrets.ECOSYSTEM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             await github.rest.repos.createDispatchEvent({
-              owner: 'Niorlusx',
-              repo: 'omni-decoder-elite',
+              owner: process.env.TARGET_SYNC_OWNER,
+              repo: process.env.TARGET_SYNC_REPO,
               event_type: 'sync-from-agent-swarm-hub',
               client_payload: {
                 source_repo: context.repo.repo,
@@ -43,4 +52,4 @@ jobs:
                 source_sha: context.sha
               }
             });
-            core.info('Repository dispatch sent to Niorlusx/omni-decoder-elite.');
+            core.info(`Repository dispatch sent to ${process.env.TARGET_SYNC_OWNER}/${process.env.TARGET_SYNC_REPO}.`);

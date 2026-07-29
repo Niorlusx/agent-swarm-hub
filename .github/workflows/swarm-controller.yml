@@ -23,8 +23,14 @@ jobs:
       - name: Initialize Swarm
         run: |
           set -euo pipefail
+          RUN_ID="${{ github.run_id }}"
+          if ! [[ "${RUN_ID}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid github.run_id value: ${RUN_ID}"
+            exit 1
+          fi
+
           mkdir -p .swarm/state .swarm/logs .swarm/agents
-          printf '{"status":"ACTIVE","updated_at":"%s","run_id":"%s"}\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "${{ github.run_id }}" > .swarm/state/swarm.json
+          printf '{"status":"ACTIVE","updated_at":"%s","run_id":"%s"}\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "${RUN_ID}" > .swarm/state/swarm.json
           echo "Swarm Controller activated at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
       - name: Log deployment
@@ -57,6 +63,19 @@ jobs:
           fi
 
           git commit -m "DEPLOY: Swarm Controller state update [skip ci]"
-          git push origin "HEAD:${{ github.ref_name }}"
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${{ github.ref_name }}"; then
+              echo "Push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+
+            if [[ "${attempt}" -lt 3 ]]; then
+              echo "Push failed on attempt ${attempt}, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
+          echo "::error::Push failed after 3 attempts."
+          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
