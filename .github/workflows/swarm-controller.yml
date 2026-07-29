@@ -46,3 +46,4 @@ jobs:
           git commit -m "DEPLOY: Swarm Controller - Phase 2"
           echo "[swarm] pushing changes"
           git push
+          echo "[swarm] push completed successfully"

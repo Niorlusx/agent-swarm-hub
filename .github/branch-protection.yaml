@@ -11,6 +11,7 @@ rules:
         checks:
           # Keep these contexts aligned with job names in:
           # .github/workflows/swarm-controller.yml and .github/workflows/ai-automation.yml
+          # Current expected jobs: deploy, automate
           - context: "deploy"
           - context: "automate"
       enforce_admins: false
