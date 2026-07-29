@@ -63,6 +63,7 @@ jobs:
           fi
 
           git commit -m "DEPLOY: Swarm Controller state update [skip ci]"
+          # Values are injected from this step's env block.
           max_attempts="${PUSH_MAX_ATTEMPTS}"
           retry_delay="${PUSH_RETRY_DELAY_SECONDS}"
 
