@@ -54,8 +54,8 @@ jobs:
           trap 'echo "::error::Deployment commit failed on line $LINENO"' ERR
 
           git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add .swarm/state/swarm.json .swarm/logs/deploy.log
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .swarm/state/swarm.json
 
           if git diff --cached --quiet; then
             echo "No deployment changes to commit."

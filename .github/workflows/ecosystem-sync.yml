@@ -15,24 +15,30 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
-      # Fallback defaults used when repository variables are not configured.
-      TARGET_SYNC_OWNER: ${{ vars.ECOSYSTEM_SYNC_OWNER || 'Niorlusx' }}
-      TARGET_SYNC_REPO: ${{ vars.ECOSYSTEM_SYNC_REPO || 'omni-decoder-elite' }}
+      TARGET_SYNC_OWNER: ${{ vars.ECOSYSTEM_SYNC_OWNER }}
+      TARGET_SYNC_REPO: ${{ vars.ECOSYSTEM_SYNC_REPO }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Log sync trigger
         run: |
           set -euo pipefail
           echo "Ecosystem sync triggered by: ${{ github.event_name }}"
           echo "Swarm run conclusion: ${{ github.event.workflow_run.conclusion || 'manual' }}"
           echo "Run ID: ${{ github.run_id }}"
-          echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
+
+      - name: Check sync target configuration
+        id: check-config
+        run: |
+          set -euo pipefail
+          if [[ -z "${TARGET_SYNC_OWNER:-}" || -z "${TARGET_SYNC_REPO:-}" ]]; then
+            echo "::warning::ECOSYSTEM_SYNC_OWNER or ECOSYSTEM_SYNC_REPO repository variables are not set. Skipping dispatch."
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Warn if cross-repo token is missing
+        if: steps.check-config.outputs.skip == 'false'
         run: |
           if [[ -z "${SYNC_TOKEN:-}" ]]; then
             echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
@@ -41,6 +47,7 @@ jobs:
           SYNC_TOKEN: ${{ secrets.ECOSYSTEM_SYNC_TOKEN }}
 
       - name: Dispatch sync event to satellite repo
+        if: steps.check-config.outputs.skip == 'false'
         uses: actions/github-script@v7
         continue-on-error: true
         with:
