@@ -15,6 +15,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
+      # Fallback defaults used when repository variables are not configured.
       TARGET_SYNC_OWNER: ${{ vars.ECOSYSTEM_SYNC_OWNER || 'Niorlusx' }}
       TARGET_SYNC_REPO: ${{ vars.ECOSYSTEM_SYNC_REPO || 'omni-decoder-elite' }}
     steps:
@@ -32,7 +33,7 @@ jobs:
           echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
 
       - name: Warn if cross-repo token is missing
-        if: ${{ secrets.ECOSYSTEM_SYNC_TOKEN == '' }}
+        if: secrets.ECOSYSTEM_SYNC_TOKEN == ''
         run: |
           echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
 

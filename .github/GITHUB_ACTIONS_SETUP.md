@@ -26,6 +26,9 @@ For any workflow that must push commits:
 ## 3) Optional Cross-Repo Sync Token
 If dispatching events to another private repository, add:
 - `ECOSYSTEM_SYNC_TOKEN` (PAT with access to target repository)
+- Optional repository variables for sync target:
+  - `ECOSYSTEM_SYNC_OWNER`
+  - `ECOSYSTEM_SYNC_REPO`
 
 ## 4) Validation Checklist
 - Swarm workflow runs successfully

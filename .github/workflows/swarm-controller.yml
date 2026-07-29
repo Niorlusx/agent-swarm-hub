@@ -63,19 +63,21 @@ jobs:
           fi
 
           git commit -m "DEPLOY: Swarm Controller state update [skip ci]"
-          for attempt in 1 2 3; do
+          for attempt in $(seq 1 "${PUSH_MAX_ATTEMPTS}"); do
             if git push origin "HEAD:${{ github.ref_name }}"; then
               echo "Push succeeded on attempt ${attempt}."
               exit 0
             fi
 
-            if [[ "${attempt}" -lt 3 ]]; then
-              echo "Push failed on attempt ${attempt}, retrying in 5 seconds..."
-              sleep 5
+            if [[ "${attempt}" -lt "${PUSH_MAX_ATTEMPTS}" ]]; then
+              echo "Push failed on attempt ${attempt}, retrying in ${PUSH_RETRY_DELAY_SECONDS} seconds..."
+              sleep "${PUSH_RETRY_DELAY_SECONDS}"
             fi
           done
 
-          echo "::error::Push failed after 3 attempts."
+          echo "::error::Push failed after ${PUSH_MAX_ATTEMPTS} attempts."
           exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUSH_MAX_ATTEMPTS: "3"
+          PUSH_RETRY_DELAY_SECONDS: "5"
