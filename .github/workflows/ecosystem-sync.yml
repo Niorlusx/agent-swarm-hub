@@ -33,7 +33,7 @@ jobs:
           echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
 
       - name: Warn if cross-repo token is missing
-        if: secrets.ECOSYSTEM_SYNC_TOKEN == ''
+        if: secrets.ECOSYSTEM_SYNC_TOKEN == null
         run: |
           echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
 
