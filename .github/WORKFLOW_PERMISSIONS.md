@@ -32,17 +32,23 @@ permissions:
 Use the standard GitHub Actions bot identity:
 ```yaml
 git config --local user.name "github-actions[bot]"
-git config --local user.email "github-actions[bot]@users.noreply.github.com"
+git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
 ```
 
 ### 4. Push Operations
 Always check for changes before committing:
 ```yaml
-if [[ -n $(git status -s) ]]; then
-  git add .
+git add .swarm/state/swarm.json
+if ! git diff --cached --quiet; then
   git commit -m "Message [skip ci]"
-  git push origin <branch>
+  git push origin "HEAD:${GITHUB_REF_NAME}"
 fi
+```
+
+Add the workflow token to any step that pushes:
+```yaml
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Repository Settings
@@ -64,10 +70,15 @@ Recommended rules for `main`:
 ### Standard Commit/Push Workflow
 ```yaml
 name: Example Workflow
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
+  actions: write
   
 jobs:
   work:
@@ -78,17 +89,19 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Make changes
-        run: echo "changes" > file.txt
+        run: |
+          timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "{\"updated_at\":\"${timestamp}\"}" > state.json
       
       - name: Commit and push
         run: |
           git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          if [[ -n $(git status -s) ]]; then
-            git add .
+          git add state.json
+          if ! git diff --cached --quiet; then
             git commit -m "automated commit [skip ci]"
-            git push origin main
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -107,13 +120,17 @@ jobs:
 **Solution:**
 1. Verify `actions/checkout@v4` has `token` parameter
 2. Check GITHUB_TOKEN is exported as environment variable
-3. Ensure git config user.name and user.email are set
+3. Ensure git config uses the standard `github-actions[bot]` identity
 
 ### Workflow runs but doesn't push changes
 **Solution:**
-1. Add conditional check: `if [[ -n $(git status -s) ]]`
-2. Verify git status shows changes
-3. Check branch name matches push target
+1. Add the intended files with `git add`
+2. Check for staged changes with `git diff --cached --quiet`
+3. Check branch name matches the push target and `HEAD:${GITHUB_REF_NAME}`
+
+## Related Documentation
+
+- [`ECOSYSTEM_ARCHITECTURE.md`](./ECOSYSTEM_ARCHITECTURE.md)
 
 ## Cross-Repo Coordination
 

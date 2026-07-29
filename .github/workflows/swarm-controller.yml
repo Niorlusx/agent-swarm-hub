@@ -5,25 +5,68 @@ on:
     branches: [ main ]
   schedule:
     - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Initialize Swarm
         run: |
+          set -euo pipefail
           mkdir -p .swarm/state .swarm/logs .swarm/agents
-          echo '{"status":"ACTIVE"}' > .swarm/state/swarm.json
+          timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          cat > .swarm/state/swarm.json <<EOF
+          {
+            "status": "ACTIVE",
+            "repository": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_number": "${{ github.run_number }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "updated_at": "${timestamp}"
+          }
+          EOF
+          echo "::notice::Swarm state written to .swarm/state/swarm.json"
           echo "Swarm Controller activated"
+
       - name: Deploy Agents
         run: |
+          set -euo pipefail
+          echo "::group::Deployment"
           echo "AI Agents deploying..."
           echo "Phase 2: INVADE initiated"
-      - name: Commit
+          echo "::endgroup::"
+
+      - name: Commit and push swarm state
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "AI Controller"
-          git config --global user.email "ai@controller.local"
-          git add .
-          git commit -m "DEPLOY: Swarm Controller - Phase 2"
-          git push
+          set -euo pipefail
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .swarm/state/swarm.json
+
+          if git diff --cached --quiet; then
+            echo "::notice::No swarm state changes detected; skipping commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update swarm controller state [skip ci]"
+          echo "::group::Git status"
+          git status --short
+          echo "::endgroup::"
+
+          if ! git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            echo "::error::Failed to push swarm controller state. Confirm GitHub Actions has read/write permissions."
+            exit 1
+          fi

@@ -1,0 +1,90 @@
+name: Ecosystem Sync
+
+on:
+  workflow_run:
+    workflows: [ AI Swarm Controller ]
+    types: [ completed ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  coordinate:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summarize controller run
+        run: |
+          set -euo pipefail
+          echo "Preparing ecosystem sync coordination."
+          echo "Repository: ${{ github.repository }}"
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            echo "Source workflow: ${{ github.event.workflow_run.name }}"
+            echo "Source run: ${{ github.event.workflow_run.id }}"
+            echo "Source SHA: ${{ github.event.workflow_run.head_sha }}"
+          else
+            echo "Manual sync requested from workflow_dispatch."
+          fi
+
+      - name: Dispatch ecosystem sync events
+        uses: actions/github-script@v7
+        env:
+          ECOSYSTEM_SYNC_TARGETS: ${{ vars.ECOSYSTEM_SYNC_TARGETS }}
+        with:
+          github-token: ${{ secrets.ECOSYSTEM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const targets = (process.env.ECOSYSTEM_SYNC_TARGETS || '')
+              .split(',')
+              .map((target) => target.trim())
+              .filter(Boolean);
+
+            if (targets.length === 0) {
+              core.info('No ECOSYSTEM_SYNC_TARGETS configured; skipping cross-repo dispatch.');
+              return;
+            }
+
+            const payload = {
+              source_repository: `${context.repo.owner}/${context.repo.repo}`,
+              source_workflow: context.eventName === 'workflow_run'
+                ? context.payload.workflow_run.name
+                : context.workflow,
+              source_run_id: context.eventName === 'workflow_run'
+                ? context.payload.workflow_run.id
+                : context.runId,
+              source_sha: context.eventName === 'workflow_run'
+                ? context.payload.workflow_run.head_sha
+                : context.sha
+            };
+
+            for (const target of targets) {
+              const [owner, repo] = target.split('/');
+
+              if (!owner || !repo) {
+                core.warning(`Skipping invalid ecosystem target: ${target}`);
+                continue;
+              }
+
+              core.info(`Dispatching ecosystem-sync event to ${owner}/${repo}`);
+              await github.rest.repos.createDispatchEvent({
+                owner,
+                repo,
+                event_type: 'ecosystem-sync',
+                client_payload: payload
+              });
+            }
+
+      - name: Write workflow summary
+        if: always()
+        run: |
+          {
+            echo "## Ecosystem Sync"
+            echo "- Trigger: ${{ github.event_name }}"
+            echo "- Targets: \`${{ vars.ECOSYSTEM_SYNC_TARGETS || 'not configured' }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
