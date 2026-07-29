@@ -41,9 +41,11 @@ jobs:
       - name: Auto-Generate Docs
         run: |
           echo "Checking for undocumented scripts..."
-          find scripts -name '*.sh' -o -name '*.py' -o -name '*.js' 2>/dev/null | while read f; do
-            echo "  $f"
-          done
+          if [ -d scripts ]; then
+            find scripts -name '*.sh' -o -name '*.py' -o -name '*.js' | while read f; do
+              echo "  $f"
+            done
+          fi
           echo "Doc generation step complete."
 
       - name: Auto-Optimize
