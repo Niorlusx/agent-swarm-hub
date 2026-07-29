@@ -35,6 +35,7 @@ jobs:
       - name: Log deployment
         run: |
           set -euo pipefail
+          # Runtime deployment log for Actions output/troubleshooting; not committed.
           printf '[%s] Swarm deployment run_id=%s actor=%s ref=%s\n' \
             "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
             "${{ github.run_id }}" \

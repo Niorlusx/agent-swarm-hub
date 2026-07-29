@@ -38,8 +38,8 @@ git config --local user.email "41898282+github-actions[bot]@users.noreply.github
 ### 4. Push Operations
 Always check for changes before committing:
 ```yaml
-if [[ -n $(git status -s) ]]; then
-  git add .
+git add <files>
+if ! git diff --cached --quiet; then
   git commit -m "Message [skip ci]"
   git push origin <branch>
 fi
@@ -84,9 +84,9 @@ jobs:
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          if [[ -n $(git status -s) ]]; then
-            git add .
+
+          git add file.txt
+          if ! git diff --cached --quiet; then
             git commit -m "automated commit [skip ci]"
             git push origin main
           fi
@@ -111,8 +111,8 @@ jobs:
 
 ### Workflow runs but doesn't push changes
 **Solution:**
-1. Add conditional check: `if [[ -n $(git status -s) ]]`
-2. Verify git status shows changes
+1. Stage target files with `git add <files>`
+2. Add conditional check: `if ! git diff --cached --quiet`
 3. Check branch name matches push target
 
 ## Cross-Repo Coordination
