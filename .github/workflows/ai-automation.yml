@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "Checking for undocumented scripts..."
           if [ -d scripts ]; then
-            find scripts -name '*.sh' -o -name '*.py' -o -name '*.js' | while read f; do
+            find scripts \( -name '*.sh' -o -name '*.py' -o -name '*.js' \) | while read f; do
               echo "  $f"
             done
           fi
@@ -53,6 +53,10 @@ jobs:
         run: |
           echo "Running basic optimization checks..."
           find . -name '*.json' -not -path './.git/*' -not -path './node_modules/*' | while read f; do
-            python3 -m json.tool "$f" > /dev/null 2>&1 && echo "  OK: $f" || echo "  WARN: invalid JSON in $f"
+            if python3 -m json.tool "$f" > /dev/null 2>/tmp/json-tool.err; then
+              echo "  OK: $f"
+            else
+              echo "  WARN: invalid JSON in $f: $(cat /tmp/json-tool.err)"
+            fi
           done
           echo "Optimization step complete."
