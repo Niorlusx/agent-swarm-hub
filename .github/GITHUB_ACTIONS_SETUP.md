@@ -19,7 +19,7 @@ For any workflow that must push commits:
   - `actions/checkout@v4` + `token: ${{ secrets.GITHUB_TOKEN }}`
 - Use standard bot identity:
   - `github-actions[bot]`
-  - `github-actions[bot]@users.noreply.github.com`
+  - `41898282+github-actions[bot]@users.noreply.github.com`
 - Export `GITHUB_TOKEN` in push step environment
 - Skip empty commits by checking staged diff before commit
 

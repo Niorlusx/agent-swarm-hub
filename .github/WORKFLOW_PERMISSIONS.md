@@ -32,7 +32,7 @@ permissions:
 Use the standard GitHub Actions bot identity:
 ```yaml
 git config --local user.name "github-actions[bot]"
-git config --local user.email "github-actions[bot]@users.noreply.github.com"
+git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
 ```
 
 ### 4. Push Operations
@@ -83,7 +83,7 @@ jobs:
       - name: Commit and push
         run: |
           git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           if [[ -n $(git status -s) ]]; then
             git add .
