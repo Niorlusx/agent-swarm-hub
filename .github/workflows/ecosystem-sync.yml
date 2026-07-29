@@ -33,9 +33,12 @@ jobs:
           echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
 
       - name: Warn if cross-repo token is missing
-        if: secrets.ECOSYSTEM_SYNC_TOKEN == null
         run: |
-          echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
+          if [[ -z "${SYNC_TOKEN:-}" ]]; then
+            echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
+          fi
+        env:
+          SYNC_TOKEN: ${{ secrets.ECOSYSTEM_SYNC_TOKEN }}
 
       - name: Dispatch sync event to satellite repo
         uses: actions/github-script@v7
