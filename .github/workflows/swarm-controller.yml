@@ -63,8 +63,8 @@ jobs:
           fi
 
           git commit -m "DEPLOY: Swarm Controller state update [skip ci]"
-          max_attempts="${PUSH_MAX_ATTEMPTS}"
-          retry_delay="${PUSH_RETRY_DELAY_SECONDS}"
+          max_attempts="${PUSH_MAX_ATTEMPTS:-3}"
+          retry_delay="${PUSH_RETRY_DELAY_SECONDS:-5}"
 
           for ((attempt=1; attempt<=max_attempts; attempt++)); do
             if git push origin "HEAD:${{ github.ref_name }}"; then
