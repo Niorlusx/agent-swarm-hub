@@ -1,0 +1,33 @@
+name: Base Workflow Permissions
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with GitHub token
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure standard Actions git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Token handling baseline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "${GITHUB_TOKEN}" ]; then
+            echo "Error: GITHUB_TOKEN is not available in this runtime. Verify Actions permissions and runtime context."
+            exit 1
+          fi
+          echo "Base permissions and token baseline are configured"
