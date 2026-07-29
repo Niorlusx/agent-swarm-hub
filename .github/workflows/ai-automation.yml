@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "Checking for undocumented scripts..."
           if [ -d scripts ]; then
-            find scripts \( -name '*.sh' -o -name '*.py' -o -name '*.js' \) | while read f; do
+            find scripts \( -name '*.sh' -o -name '*.py' -o -name '*.js' \) | while IFS= read -r f; do
               echo "  $f"
             done
           fi
@@ -52,11 +52,13 @@ jobs:
       - name: Auto-Optimize
         run: |
           echo "Running basic optimization checks..."
-          find . -name '*.json' -not -path './.git/*' -not -path './node_modules/*' | while read f; do
-            if python3 -m json.tool "$f" > /dev/null 2>/tmp/json-tool.err; then
+          find . -name '*.json' -not -path './.git/*' -not -path './node_modules/*' | while IFS= read -r f; do
+            err_file="$(mktemp)"
+            if python3 -m json.tool "$f" > /dev/null 2>"${err_file}"; then
               echo "  OK: $f"
             else
-              echo "  WARN: invalid JSON in $f: $(cat /tmp/json-tool.err)"
+              echo "  WARN: invalid JSON in $f: $(cat "${err_file}")"
             fi
+            rm -f "${err_file}"
           done
           echo "Optimization step complete."
