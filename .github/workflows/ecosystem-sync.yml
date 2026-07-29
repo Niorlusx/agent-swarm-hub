@@ -1,0 +1,59 @@
+name: Ecosystem Sync
+
+on:
+  workflow_run:
+    workflows: [ "AI Swarm Controller" ]
+    types: [ completed ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      # Fallback defaults used when repository variables are not configured.
+      TARGET_SYNC_OWNER: ${{ vars.ECOSYSTEM_SYNC_OWNER || 'Niorlusx' }}
+      TARGET_SYNC_REPO: ${{ vars.ECOSYSTEM_SYNC_REPO || 'omni-decoder-elite' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log sync trigger
+        run: |
+          set -euo pipefail
+          echo "Ecosystem sync triggered by: ${{ github.event_name }}"
+          echo "Swarm run conclusion: ${{ github.event.workflow_run.conclusion || 'manual' }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Target repository: ${TARGET_SYNC_OWNER}/${TARGET_SYNC_REPO}"
+
+      - name: Warn if cross-repo token is missing
+        run: |
+          if [[ -z "${SYNC_TOKEN:-}" ]]; then
+            echo "::warning::ECOSYSTEM_SYNC_TOKEN is not configured. Cross-repo dispatch may fail for private satellite repositories."
+          fi
+        env:
+          SYNC_TOKEN: ${{ secrets.ECOSYSTEM_SYNC_TOKEN }}
+
+      - name: Dispatch sync event to satellite repo
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.ECOSYSTEM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: process.env.TARGET_SYNC_OWNER,
+              repo: process.env.TARGET_SYNC_REPO,
+              event_type: 'sync-from-agent-swarm-hub',
+              client_payload: {
+                source_repo: context.repo.repo,
+                source_run_id: String(context.runId),
+                source_sha: context.sha
+              }
+            });
+            core.info(`Repository dispatch sent to ${process.env.TARGET_SYNC_OWNER}/${process.env.TARGET_SYNC_REPO}.`);
