@@ -5,25 +5,58 @@ on:
     branches: [ main ]
   schedule:
     - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Initialize Swarm
         run: |
+          set -euo pipefail
           mkdir -p .swarm/state .swarm/logs .swarm/agents
-          echo '{"status":"ACTIVE"}' > .swarm/state/swarm.json
-          echo "Swarm Controller activated"
+          printf '{"status":"ACTIVE","updated_at":"%s","run_id":"%s"}\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "${{ github.run_id }}" > .swarm/state/swarm.json
+          echo "Swarm Controller activated at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+      - name: Log deployment
+        run: |
+          set -euo pipefail
+          printf '[%s] Swarm deployment run_id=%s actor=%s ref=%s\n' \
+            "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            "${{ github.run_id }}" \
+            "${{ github.actor }}" \
+            "${{ github.ref_name }}" >> .swarm/logs/deploy.log
+
       - name: Deploy Agents
         run: |
+          set -euo pipefail
           echo "AI Agents deploying..."
           echo "Phase 2: INVADE initiated"
-      - name: Commit
+
+      - name: Commit and push state updates
         run: |
-          git config --global user.name "AI Controller"
-          git config --global user.email "ai@controller.local"
-          git add .
-          git commit -m "DEPLOY: Swarm Controller - Phase 2"
-          git push
+          set -euo pipefail
+          trap 'echo "::error::Deployment commit failed on line $LINENO"' ERR
+
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add .swarm/state/swarm.json .swarm/logs/deploy.log
+
+          if git diff --cached --quiet; then
+            echo "No deployment changes to commit."
+            exit 0
+          fi
+
+          git commit -m "DEPLOY: Swarm Controller state update [skip ci]"
+          git push origin "HEAD:${{ github.ref_name }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

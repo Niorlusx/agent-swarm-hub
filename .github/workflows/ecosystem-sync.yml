@@ -1,0 +1,46 @@
+name: Ecosystem Sync
+
+on:
+  workflow_run:
+    workflows: [ "AI Swarm Controller" ]
+    types: [ completed ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log sync trigger
+        run: |
+          set -euo pipefail
+          echo "Ecosystem sync triggered by: ${{ github.event_name }}"
+          echo "Swarm run conclusion: ${{ github.event.workflow_run.conclusion || 'manual' }}"
+          echo "Run ID: ${{ github.run_id }}"
+
+      - name: Dispatch sync event to satellite repo
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.ECOSYSTEM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: 'Niorlusx',
+              repo: 'omni-decoder-elite',
+              event_type: 'sync-from-agent-swarm-hub',
+              client_payload: {
+                source_repo: context.repo.repo,
+                source_run_id: String(context.runId),
+                source_sha: context.sha
+              }
+            });
+            core.info('Repository dispatch sent to Niorlusx/omni-decoder-elite.');
