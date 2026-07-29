@@ -27,7 +27,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "${GITHUB_TOKEN}" ]; then
-            echo "Error: GITHUB_TOKEN is not set. Ensure workflow permissions include contents: write and that Actions secrets are available."
+            echo "Error: GITHUB_TOKEN is not available in this runtime. Verify Actions permissions and runtime context."
             exit 1
           fi
           echo "Base permissions and token baseline are configured"

@@ -9,9 +9,9 @@ rules:
       required_status_checks:
         strict: true
         checks:
-          # Keep these contexts aligned with workflow/job names in:
+          # Keep these contexts aligned with job names in:
           # .github/workflows/swarm-controller.yml and .github/workflows/ai-automation.yml
-          - context: "AI Swarm Controller / deploy"
-          - context: "AI Automation Agent / automate"
+          - context: "deploy"
+          - context: "automate"
       enforce_admins: false
       restrictions: null
